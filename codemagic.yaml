@@ -1,0 +1,33 @@
+workflows:
+  default-workflow:
+    name: Default Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+    triggering:
+      events:
+        - push
+    scripts:
+      - name: Create Clean Flutter App
+        script: |
+          # पुराना सब हटाकर बिल्कुल नया साफ ऐप बनाना
+          rm -rf *
+          flutter create . --platforms=android --org=com.mohit
+          
+          # हमारे कोड को सही जगह पहुँचाना
+          rm lib/main.dart
+          curl -o lib/main.dart https://raw.githubusercontent.com/${CD_REPO_SLUG}/main/main.dart
+          
+          # pubspec.yaml में ज़रूरी पैकेजेस खुद जोड़ना
+          flutter pub add firebase_core cloud_firestore cupertino_icons
+      - name: Configure Android Gradle
+        script: |
+          # MinSdkVersion को 21 करना ताकि कोई एरर न आए
+          sed -i '' 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/' android/app/build.gradle
+      - name: Build Android APK
+        script: |
+          flutter build apk --release --no-pub
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      
